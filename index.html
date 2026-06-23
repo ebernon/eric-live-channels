@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+  <title>Eric's Live Channels</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js",{updateViaCache:"none"}).catch(function(){})}</script>
+  <meta name="theme-color" content="#0a6a8a"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Live Channels"/>
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png"/>
+  <meta name="description" content="Free, always-on radio, TV and movies from around the world. Eric's Live Channels."/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="Eric's Live Channels"/>
+  <meta property="og:title" content="Eric's Live Channels"/>
+  <meta property="og:description" content="Free, always-on radio, TV and movies from around the world. Tap any tile to play."/>
+  <meta property="og:image" content="https://channels.colonialbeachapp.com/icons/icon-512.png"/>
+  <meta property="og:image:width" content="512"/>
+  <meta property="og:image:height" content="512"/>
+  <meta property="og:url" content="https://channels.colonialbeachapp.com"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="Eric's Live Channels"/>
+  <meta name="twitter:description" content="Free, always-on radio, TV and movies from around the world."/>
+  <meta name="twitter:image" content="https://channels.colonialbeachapp.com/icons/icon-512.png"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{
+      min-height:100%;
+      background:#0a6a8a;
+      background-image:linear-gradient(165deg,#0a6a8a 0%,#0d4f6e 48%,#072e3c 100%);
+      background-attachment:fixed;
+      font-family:Georgia,serif;
+      -webkit-tap-highlight-color:transparent;
+      overscroll-behavior:none;overflow-anchor:none;
+      color:#fff;
+    }
+    body{min-height:100dvh;}
+    header.app-bar{
+      position:sticky;top:0;z-index:50;
+      display:flex;align-items:center;gap:12px;
+      padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 12px;
+      background:linear-gradient(180deg,rgba(8,46,60,0.92) 0%,rgba(8,46,60,0.6) 70%,rgba(8,46,60,0) 100%);
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    }
+    header.app-bar img{width:34px;height:34px;border-radius:9px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.35)}
+    header.app-bar .titles{display:flex;flex-direction:column;line-height:1.1}
+    header.app-bar h1{font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:900;letter-spacing:0.5px;color:#fff}
+    header.app-bar p{font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-top:2px}
+    main{max-width:1100px;margin:0 auto;padding:6px 16px calc(env(safe-area-inset-bottom,0px) + 90px)}
+    #status{padding:60px 24px;text-align:center;color:rgba(255,255,255,0.7);font-size:14px;line-height:1.6}
+    #status .spin{display:inline-block;width:26px;height:26px;border:3px solid rgba(255,255,255,0.25);border-top-color:#30d8c0;border-radius:50%;animation:cbspin 0.8s linear infinite;margin-bottom:16px}
+    #status a{color:#30d8c0}
+    @keyframes cbspin{to{transform:rotate(360deg)}}
+    #splash{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#0a6a8a 0%,#0ea89a 50%,#30d8c0 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.5s ease}
+    #splash img{width:128px;height:128px;object-fit:contain;border-radius:28px;margin-bottom:22px;filter:drop-shadow(0 4px 20px rgba(0,0,0,0.4))}
+    #splash h1{font-family:'Playfair Display',Georgia,serif;font-size:24px;font-weight:900;color:#fff;letter-spacing:2px;text-align:center;padding:0 24px}
+    #splash p{color:rgba(255,255,255,0.6);font-size:11px;letter-spacing:4px;text-transform:uppercase;margin-top:8px}
+    noscript{display:block;color:#fff;font-family:Georgia,serif;text-align:center;padding:60px 24px}
+    noscript a{color:#30d8c0}
+  </style>
+</head>
+<body>
+  <div id="splash">
+    <img src="/icons/icon-512.png" alt="Eric's Live Channels"/>
+    <h1>ERIC'S LIVE CHANNELS</h1>
+    <p>Radio &middot; TV &middot; Movies</p>
+  </div>
+
+  <noscript>
+    <h1>&#128250; Eric's Live Channels</h1>
+    <p>Free, always-on radio, TV and movies from around the world.</p>
+    <p><em>Please enable JavaScript to use this app.</em></p>
+  </noscript>
+
+  <header class="app-bar">
+    <img src="/icons/icon-192.png" alt=""/>
+    <div class="titles">
+      <h1>Eric's Live Channels</h1>
+      <p>Radio &middot; TV &middot; Movies</p>
+    </div>
+  </header>
+
+  <main>
+    <div id="status"><div class="spin"></div><div>Loading channels&hellip;</div></div>
+    <div id="channels-root"></div>
+  </main>
+
+  <script>
+    // Eric's Live Channels — thin standalone shell.
+    // The entire Channels experience is the SAME shared bundle every town app
+    // loads at runtime: https://colonialbeachapp.com/channels-widget.js, which
+    // self-fetches the live feed from .../channels.json. So this page stays
+    // automatically identical to, and in sync with, every town's Channels tab.
+    // No town context is passed -> renders the global feed (no per-town cam).
+    (function () {
+      var WIDGET_SRC = "https://colonialbeachapp.com/channels-widget.js";
+      var statusEl = document.getElementById("status");
+      var rootEl   = document.getElementById("channels-root");
+
+      function showFallback() {
+        if (!statusEl) return;
+        statusEl.innerHTML =
+          "<div style='font-size:34px;margin-bottom:10px'>&#128250;</div>" +
+          "<div>Couldn't load the channels right now.</div>" +
+          "<div style='margin-top:8px;font-size:13px;opacity:.8'>Check your connection and refresh, " +
+          "or open them at <a href='https://colonialbeachapp.com' target='_blank' rel='noopener'>colonialbeachapp.com</a>.</div>";
+      }
+
+      function hideSplash() {
+        var s = document.getElementById("splash");
+        if (!s) return;
+        s.style.opacity = "0";
+        setTimeout(function () { if (s && s.parentNode) s.parentNode.removeChild(s); }, 600);
+      }
+
+      function mount() {
+        try {
+          if (window.CBChannels && typeof window.CBChannels.mount === "function") {
+            if (statusEl && statusEl.parentNode) statusEl.parentNode.removeChild(statusEl);
+            window.CBChannels.mount(rootEl); // no opts -> global feed
+            return true;
+          }
+        } catch (e) {}
+        return false;
+      }
+
+      var tries = 0;
+      function waitForApi() {
+        if (mount()) return;
+        if (++tries > 40) { showFallback(); return; } // ~10s
+        setTimeout(waitForApi, 250);
+      }
+
+      var s = document.createElement("script");
+      s.src = WIDGET_SRC;
+      s.async = true;
+      s.onload = waitForApi;
+      s.onerror = showFallback;
+      document.head.appendChild(s);
+
+      window.addEventListener("load", function () { setTimeout(hideSplash, 700); });
+      setTimeout(hideSplash, 2500);
+    })();
+
+    if ("serviceWorker" in navigator) {
+      var refreshing = false;
+      navigator.serviceWorker.addEventListener("controllerchange", function () {
+        if (refreshing) return; refreshing = true; window.location.reload();
+      });
+    }
+  </script>
+</body>
+</html>
