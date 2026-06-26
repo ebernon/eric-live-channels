@@ -62,6 +62,33 @@
     #splash p{color:rgba(255,255,255,0.6);font-size:11px;letter-spacing:4px;text-transform:uppercase;margin-top:8px}
     noscript{display:block;color:#fff;font-family:Georgia,serif;text-align:center;padding:60px 24px}
     noscript a{color:#30d8c0}
+
+    /* ── Add-to-Home-Screen banner ── */
+    #a2hs{
+      position:fixed;left:50%;transform:translateX(-50%) translateY(140%);
+      bottom:calc(env(safe-area-inset-bottom,0px) + 14px);
+      width:min(440px, calc(100vw - 24px));z-index:9500;
+      display:flex;align-items:center;gap:11px;
+      padding:11px 12px;border-radius:16px;
+      background:rgba(8,46,60,0.97);border:1px solid rgba(48,216,192,0.35);
+      backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+      box-shadow:0 10px 34px rgba(0,0,0,0.5);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Georgia,sans-serif;
+      opacity:0;transition:transform .35s cubic-bezier(.2,.9,.3,1),opacity .35s ease;
+    }
+    #a2hs.show{transform:translateX(-50%) translateY(0);opacity:1;}
+    #a2hs img.ic{width:40px;height:40px;border-radius:10px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+    #a2hs .a2hs-body{flex:1;min-width:0}
+    #a2hs .a2hs-title{font-size:13.5px;font-weight:700;color:#fff;line-height:1.25}
+    #a2hs .a2hs-text{font-size:12px;color:rgba(255,255,255,.72);line-height:1.4;margin-top:2px}
+    #a2hs .a2hs-text b{color:#fff;font-weight:700}
+    #a2hs .gly{display:inline-block;vertical-align:-3px;margin:0 1px}
+    #a2hs .a2hs-cta{flex-shrink:0;border:0;cursor:pointer;
+      background:linear-gradient(180deg,#22c3a6,#16a085);color:#fff;
+      font-size:13px;font-weight:800;letter-spacing:.3px;
+      padding:9px 15px;border-radius:11px;font-family:inherit;}
+    #a2hs .a2hs-x{flex-shrink:0;align-self:flex-start;border:0;background:transparent;
+      color:rgba(255,255,255,.55);font-size:20px;line-height:1;cursor:pointer;padding:0 2px;font-family:inherit;}
   </style>
 </head>
 <body>
@@ -90,18 +117,23 @@
     <div id="channels-root"></div>
   </main>
 
+  <!-- Add to Home Screen banner (platform-aware, dismissible) -->
+  <div id="a2hs" role="dialog" aria-label="Add to home screen">
+    <img class="ic" src="/icons/icon-192.png" alt=""/>
+    <div class="a2hs-body">
+      <div class="a2hs-title">Add to your home screen</div>
+      <div class="a2hs-text" id="a2hs-text">Get full-screen, one-tap access.</div>
+    </div>
+    <button class="a2hs-cta" id="a2hs-add">Add</button>
+    <button class="a2hs-x" id="a2hs-x" aria-label="Dismiss">&times;</button>
+  </div>
+
   <script>
-    // Eric's Live Channels — thin standalone shell.
-    // The entire Channels experience is the SAME shared bundle every town app
-    // loads at runtime: https://colonialbeachapp.com/channels-widget.js, which
-    // self-fetches the live feed from .../channels.json. So this page stays
-    // automatically identical to, and in sync with, every town's Channels tab.
-    // No town context is passed -> renders the global feed (no per-town cam).
+    // ── Channels widget loader (shared bundle, global feed) ──
     (function () {
       var WIDGET_SRC = "https://colonialbeachapp.com/channels-widget.js";
       var statusEl = document.getElementById("status");
       var rootEl   = document.getElementById("channels-root");
-
       function showFallback() {
         if (!statusEl) return;
         statusEl.innerHTML =
@@ -110,41 +142,83 @@
           "<div style='margin-top:8px;font-size:13px;opacity:.8'>Check your connection and refresh, " +
           "or open them at <a href='https://colonialbeachapp.com' target='_blank' rel='noopener'>colonialbeachapp.com</a>.</div>";
       }
-
       function hideSplash() {
         var s = document.getElementById("splash");
         if (!s) return;
         s.style.opacity = "0";
         setTimeout(function () { if (s && s.parentNode) s.parentNode.removeChild(s); }, 600);
       }
-
       function mount() {
         try {
           if (window.CBChannels && typeof window.CBChannels.mount === "function") {
             if (statusEl && statusEl.parentNode) statusEl.parentNode.removeChild(statusEl);
-            window.CBChannels.mount(rootEl); // no opts -> global feed
+            window.CBChannels.mount(rootEl);
             return true;
           }
         } catch (e) {}
         return false;
       }
-
       var tries = 0;
       function waitForApi() {
         if (mount()) return;
-        if (++tries > 40) { showFallback(); return; } // ~10s
+        if (++tries > 40) { showFallback(); return; }
         setTimeout(waitForApi, 250);
       }
-
       var s = document.createElement("script");
-      s.src = WIDGET_SRC;
-      s.async = true;
-      s.onload = waitForApi;
-      s.onerror = showFallback;
+      s.src = WIDGET_SRC; s.async = true;
+      s.onload = waitForApi; s.onerror = showFallback;
       document.head.appendChild(s);
-
       window.addEventListener("load", function () { setTimeout(hideSplash, 700); });
       setTimeout(hideSplash, 2500);
+    })();
+
+    // ── Add-to-Home-Screen prompt ──
+    (function () {
+      var KEY = "elc_a2hs_dismissed_v1";
+      var bar = document.getElementById("a2hs");
+      var txt = document.getElementById("a2hs-text");
+      var addBtn = document.getElementById("a2hs-add");
+      var xBtn = document.getElementById("a2hs-x");
+      var deferred = null;
+      var SHARE = '<svg class="gly" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#30d8c0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>';
+      var PLUS  = '<svg class="gly" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#30d8c0" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
+
+      function standalone(){ return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true; }
+      function snoozed(){ try { var t = +localStorage.getItem(KEY) || 0; return (Date.now() - t) < 14*864e5; } catch(e){ return false; } }
+      function remember(){ try { localStorage.setItem(KEY, String(Date.now())); } catch(e){} }
+      function hide(){ bar.classList.remove("show"); }
+      function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
+
+      function show(mode){
+        if (standalone() || snoozed()) return;
+        if (mode === "ios") {
+          addBtn.style.display = "none";
+          txt.innerHTML = "Tap " + SHARE + " in the toolbar, then <b>Add to Home Screen</b> " + PLUS + ".";
+        } else {
+          addBtn.style.display = "";
+          txt.textContent = "Get full-screen, one-tap access.";
+        }
+        bar.classList.add("show");
+      }
+
+      window.addEventListener("beforeinstallprompt", function (e) {
+        e.preventDefault(); deferred = e; show("button");
+      });
+      window.addEventListener("appinstalled", function () { remember(); hide(); });
+      addBtn.addEventListener("click", function () {
+        if (!deferred) return;
+        deferred.prompt();
+        if (deferred.userChoice && deferred.userChoice.then) {
+          deferred.userChoice.then(function(){ deferred = null; remember(); hide(); });
+        } else { deferred = null; remember(); hide(); }
+      });
+      xBtn.addEventListener("click", function () { remember(); hide(); });
+
+      // iOS Safari has no beforeinstallprompt — show instructions after the splash lifts.
+      setTimeout(function () {
+        if (standalone() || snoozed()) return;
+        if (isIOS()) show("ios");
+      }, 3400);
     })();
 
     if ("serviceWorker" in navigator) {
