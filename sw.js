@@ -2,7 +2,7 @@
 // Network-first for the app shell AND for the shared widget/feed on
 // colonialbeachapp.com, so the channels always stay in sync; cache is only a
 // fallback when offline. Cache-first for icons/manifest (rarely change).
-const CACHE = 'eric-live-channels-v1';
+const CACHE = 'eric-live-channels-v2';
 const PRECACHE = ['/', '/index.html', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', e => {
