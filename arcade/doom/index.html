@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Freedoom — Game Room</title>
+<style>
+  html,body{margin:0;padding:0;background:#000;height:100%;overflow:hidden;touch-action:none;
+    -webkit-user-select:none;user-select:none;font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif}
+  #stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  canvas{background:#000;image-rendering:pixelated;display:block}
+  /* boot overlay */
+  #boot{position:fixed;inset:0;background:#0b0b0b;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:18px;z-index:50;color:#e8e2d0;text-align:center;padding:24px}
+  #boot h1{margin:0;font-size:34px;letter-spacing:3px;color:#ff3b1f;text-shadow:0 0 18px rgba(255,59,31,.55);font-weight:900}
+  #boot p{margin:0;font-size:14px;opacity:.75;max-width:340px;line-height:1.5}
+  #startBtn{background:#ff3b1f;color:#fff;border:none;border-radius:12px;padding:16px 42px;font-size:18px;
+    font-weight:800;letter-spacing:1px;cursor:pointer;box-shadow:0 6px 24px rgba(255,59,31,.4)}
+  #bar{width:min(320px,70vw);height:10px;border-radius:6px;background:#222;overflow:hidden;display:none}
+  #bar i{display:block;height:100%;width:0%;background:#ff3b1f;transition:width .15s}
+  #bootNote{font-size:12px;opacity:.55}
+  /* touch controls */
+  .tc{position:fixed;z-index:30;display:none}
+  body.touch .tc{display:block}
+  #joy{left:12px;bottom:14px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.16)}
+  #knob{position:absolute;left:50%;top:50%;width:62px;height:62px;border-radius:50%;
+    background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.3);transform:translate(-50%,-50%)}
+  .btn{position:fixed;z-index:30;border-radius:50%;color:#fff;font-weight:800;display:none;
+    align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.25);
+    background:rgba(255,255,255,.10);text-shadow:0 1px 2px #000}
+  body.touch .btn{display:flex}
+  #bFire{right:16px;bottom:64px;width:86px;height:86px;font-size:15px;background:rgba(255,59,31,.28);border-color:rgba(255,90,60,.5)}
+  #bUse{right:116px;bottom:26px;width:60px;height:60px;font-size:12px}
+  #bRun{right:126px;bottom:104px;width:52px;height:52px;font-size:11px}
+  #bWpn{right:28px;bottom:168px;width:52px;height:52px;font-size:11px}
+  .btn.on{background:rgba(90,200,90,.45);border-color:rgba(120,255,120,.6)}
+  .top{position:fixed;top:10px;z-index:31;height:38px;border-radius:10px;padding:0 14px;color:#fff;
+    background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);font-size:13px;font-weight:700;
+    display:flex;align-items:center;justify-content:center}
+  #bEsc{left:10px}
+  #bEnter{left:76px}
+  #bFull{right:10px}
+  #hint{position:fixed;left:50%;top:10px;transform:translateX(-50%);color:#ccc;font-size:12px;z-index:29;
+    background:rgba(0,0,0,.45);padding:6px 12px;border-radius:8px;display:none}
+  body:not(.touch) #hint{display:block}
+</style>
+</head>
+<body>
+  <div id="stage"><canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas></div>
+
+  <div id="boot">
+    <h1>FREEDOOM</h1>
+    <p>Freedoom: Phase 1 on the PrBoom engine — free, open-source, and surprisingly still the best way to wait out a rain shower.</p>
+    <button id="startBtn">▶ &nbsp;PLAY</button>
+    <div id="bar"><i id="barFill"></i></div>
+    <div id="bootNote">~29 MB download on first play · saves stay on this device<br>Tip: rotate your phone sideways</div>
+  </div>
+
+  <div id="hint">Arrows = move &nbsp;·&nbsp; Ctrl = fire &nbsp;·&nbsp; Space = open &nbsp;·&nbsp; Shift = run &nbsp;·&nbsp; Enter/Esc = menus</div>
+
+  <div id="joy" class="tc"><div id="knob"></div></div>
+  <div id="bFire" class="btn">FIRE</div>
+  <div id="bUse"  class="btn">OPEN</div>
+  <div id="bRun"  class="btn">RUN</div>
+  <div id="bWpn"  class="btn">WPN</div>
+  <div id="bEsc"   class="top tc">MENU</div>
+  <div id="bEnter" class="top tc">⏎</div>
+  <div id="bFull"  class="top tc">⛶</div>
+
+<script>
+(function(){
+  "use strict";
+  var qs=function(id){return document.getElementById(id)};
+  var isTouch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  if (isTouch) document.body.classList.add("touch");
+
+  // ── canvas fit (game renders 640x400 → letterbox to viewport) ──
+  var canvas = qs("canvas");
+  function fit(){
+    var aw = canvas.width || 640, ah = canvas.height || 400;
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var s = Math.min(vw/aw, vh/ah);
+    canvas.style.width  = Math.floor(aw*s) + "px";
+    canvas.style.height = Math.floor(ah*s) + "px";
+  }
+  window.addEventListener("resize", fit);
+  new MutationObserver(fit).observe(canvas, {attributes:true, attributeFilter:["width","height"]});
+
+  // ── synthesized keyboard: SDL shim listens on document and reads keyCode ──
+  function sendKey(code, down){
+    var e = new KeyboardEvent(down ? "keydown" : "keyup", {bubbles:true, cancelable:true});
+    Object.defineProperty(e, "keyCode", {get:function(){return code}});
+    Object.defineProperty(e, "which",   {get:function(){return code}});
+    document.dispatchEvent(e);
+  }
+  function tapKey(code){ sendKey(code,true); setTimeout(function(){sendKey(code,false)},70); }
+  var K={LEFT:37,UP:38,RIGHT:39,DOWN:40,CTRL:17,SPACE:32,SHIFT:16,ESC:27,ENTER:13};
+
+  // ── virtual joystick → arrow keys (8-way, 22px deadzone) ──
+  var joy=qs("joy"), knob=qs("knob"), joyId=null, held={37:false,38:false,39:false,40:false};
+  function setDir(code,on){ if(held[code]!==on){ held[code]=on; sendKey(code,on); } }
+  function joyMove(x,y){
+    var r=joy.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+    var dx=x-cx, dy=y-cy, max=r.width/2-10, len=Math.hypot(dx,dy);
+    if(len>max){ dx*=max/len; dy*=max/len; }
+    knob.style.transform="translate(calc(-50% + "+dx+"px), calc(-50% + "+dy+"px))";
+    var dead=22;
+    setDir(K.LEFT,  dx<-dead); setDir(K.RIGHT, dx>dead);
+    setDir(K.UP,    dy<-dead); setDir(K.DOWN,  dy>dead);
+  }
+  function joyEnd(){
+    joyId=null; knob.style.transform="translate(-50%,-50%)";
+    [37,38,39,40].forEach(function(c){setDir(c,false)});
+  }
+  joy.addEventListener("pointerdown",function(e){ joyId=e.pointerId; joy.setPointerCapture(joyId); joyMove(e.clientX,e.clientY); e.preventDefault(); });
+  joy.addEventListener("pointermove",function(e){ if(e.pointerId===joyId) joyMove(e.clientX,e.clientY); });
+  joy.addEventListener("pointerup",joyEnd); joy.addEventListener("pointercancel",joyEnd);
+
+  // ── hold buttons ──
+  function holdBtn(el,code){
+    el.addEventListener("pointerdown",function(e){ el.setPointerCapture(e.pointerId); sendKey(code,true); e.preventDefault(); });
+    ["pointerup","pointercancel"].forEach(function(ev){ el.addEventListener(ev,function(){ sendKey(code,false); }); });
+  }
+  holdBtn(qs("bFire"),K.CTRL);
+  holdBtn(qs("bUse"),K.SPACE);
+  // RUN = sticky toggle (holds Shift down)
+  var running=false;
+  qs("bRun").addEventListener("pointerdown",function(e){
+    running=!running; sendKey(K.SHIFT,running); qs("bRun").classList.toggle("on",running); e.preventDefault();
+  });
+  // WPN cycles 2→3→4→5→6→7→1
+  var wseq=[50,51,52,53,54,55,49], wi=0;
+  qs("bWpn").addEventListener("pointerdown",function(e){ tapKey(wseq[wi]); wi=(wi+1)%wseq.length; e.preventDefault(); });
+  qs("bEsc").addEventListener("pointerdown",function(e){ tapKey(K.ESC); e.preventDefault(); });
+  qs("bEnter").addEventListener("pointerdown",function(e){ tapKey(K.ENTER); e.preventDefault(); });
+  qs("bFull").addEventListener("pointerdown",function(e){
+    e.preventDefault();
+    var el=document.documentElement;
+    if(document.fullscreenElement){ document.exitFullscreen&&document.exitFullscreen(); }
+    else if(el.requestFullscreen){ el.requestFullscreen(); }
+    else if(el.webkitRequestFullscreen){ el.webkitRequestFullscreen(); }
+  });
+
+  // ── save-game persistence: snapshot MEMFS → localStorage ──
+  var LS_KEY="gameroom.doom.fs.v1";
+  function walk(dir,out){
+    var FSo=window.FS; if(!FSo) return;
+    var names; try{ names=FSo.readdir(dir); }catch(e){ return; }
+    names.forEach(function(n){
+      if(n==="."||n==="..") return;
+      var p=(dir==="/"?"":dir)+"/"+n, st;
+      try{ st=FSo.stat(p); }catch(e){ return; }
+      if(FSo.isDir(st.mode)){ if(p!=="/proc"&&p!=="/dev"&&p!=="/tmp"&&p!=="/sfx"&&p!=="/music") walk(p,out); }
+      else if(FSo.isFile(st.mode)){
+        if(/\.(cfg|dsg)$/i.test(n)){
+          try{
+            var b=FSo.readFile(p), s="", i;
+            for(i=0;i<b.length;i++) s+=String.fromCharCode(b[i]);
+            out[p]=btoa(s);
+          }catch(e){}
+        }
+      }
+    });
+  }
+  function persist(){
+    if(typeof window.FS==="undefined") return;
+    try{
+      var out={}; walk("/",out);
+      if(Object.keys(out).length) localStorage.setItem(LS_KEY,JSON.stringify(out));
+    }catch(e){}
+  }
+  function restore(){
+    try{
+      var raw=localStorage.getItem(LS_KEY); if(!raw) return;
+      var map=JSON.parse(raw), FSo=window.FS; if(!FSo) return;
+      Object.keys(map).forEach(function(p){
+        try{
+          var dir=p.slice(0,p.lastIndexOf("/"))||"/";
+          if(dir!=="/"){ try{ FSo.mkdirTree ? FSo.mkdirTree(dir) : FSo.createPath("/",dir.slice(1),true,true); }catch(e){} }
+          var s=atob(map[p]), b=new Uint8Array(s.length), i;
+          for(i=0;i<s.length;i++) b[i]=s.charCodeAt(i);
+          FSo.writeFile(p,b);
+        }catch(e){}
+      });
+    }catch(e){}
+  }
+  setInterval(persist, 10000);
+  window.addEventListener("pagehide",persist);
+  document.addEventListener("visibilitychange",function(){ if(document.hidden) persist(); });
+
+  // ── emscripten Module + deferred boot ──
+  var bar=qs("bar"), fill=qs("barFill");
+  window.Module = {
+    preRun: [restore],
+    postRun: [],
+    canvas: canvas,
+    print: function(t){ try{console.log(t)}catch(e){} },
+    printErr: function(t){ try{console.warn(t)}catch(e){} },
+    setStatus: function(text){
+      var m=text && text.match(/\((\d+(\.\d+)?)\/(\d+)\)/);
+      if(m){ bar.style.display="block"; fill.style.width=Math.round(100*parseFloat(m[1])/parseFloat(m[3]))+"%"; }
+      if(!text){ // run started
+        qs("boot").style.display="none"; fit(); setTimeout(fit,500);
+      }
+    },
+    totalDependencies: 0,
+    monitorRunDependencies: function(){}
+  };
+  qs("startBtn").addEventListener("click",function(){
+    qs("startBtn").style.display="none"; bar.style.display="block";
+    var s=document.createElement("script"); s.src="freedoom1.js"; s.async=true;
+    s.onerror=function(){ qs("bootNote").textContent="Download failed — check the connection and reload."; };
+    document.body.appendChild(s);
+  });
+})();
+</script>
+</body>
+</html>

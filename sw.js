@@ -2,7 +2,7 @@
 // Network-first for the app shell AND for the shared widget/feed on
 // colonialbeachapp.com, so the channels always stay in sync; cache is only a
 // fallback when offline. Cache-first for icons/manifest (rarely change).
-const CACHE = 'eric-live-channels-v2';
+const CACHE = 'eric-live-channels-v3';
 const PRECACHE = ['/', '/index.html', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -41,6 +41,10 @@ self.addEventListener('fetch', e => {
 
   // Other cross-origin (fonts, YouTube, radio streams, thumbnails): pass through.
   if (url.origin !== self.location.origin) return;
+
+  // Games (/arcade/): straight to the network. Their pages must never fall
+  // back to the app shell, and their large data files stay out of this cache.
+  if (url.pathname.startsWith('/arcade/')) return;
 
   // App shell HTML/JS: network-first, fall back to cache / index.html offline.
   const isShell = e.request.destination === 'document'

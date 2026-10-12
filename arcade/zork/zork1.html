@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Zork I</title>
+    <link rel="stylesheet" href="interpreter/parchment.css" type="text/css">
+    <script src="interpreter/jquery.min.js"></script>
+    <script src="interpreter/ie.js" nomodule></script>
+    <script src="interpreter/parchment.js"></script>
+    <script>
+    (function(){
+        const url = 'zork1.z3.js'
+        const filename = url.substring(0, url.length - 3)
+        window.parchment_options = {
+            dialog_localStorage_id: 'zork1',
+            jsonp: 'ParchmentResource',
+            lib_path: 'interpreter/',
+            story: { filename, title: 'Zork I', url },
+        }
+    })()
+    </script>
+    <style>html,body{background:#111;color:#eee;margin:0;height:100%}#gameport{position:absolute;inset:0}</style>
+</head>
+<body>
+    <div id="gameport">
+        <div id="windowport">
+            <noscript><p>You'll need to turn on Javascript in your web browser to play this game.</p></noscript>
+        </div>
+        <div id="loadingpane">
+            <img src="interpreter/waiting.gif" alt="LOADING"><br>
+            <em>&nbsp;&nbsp;&nbsp;Loading...</em>
+        </div>
+        <div id="errorpane" style="display:none;"><div id="errorcontent">...</div></div>
+    </div>
+</body>
+</html>

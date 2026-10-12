@@ -2,6 +2,22 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch(function () {});
 }
 
+// Games tab: self-hosted open-source games under /arcade/ (see
+// arcade/ATTRIBUTION.md for sources and licences). The shared widget shows the
+// tab only because this list is passed in; town apps pass none.
+var GAMES = [
+  { id: "freedoom", emoji: "🔫", name: "Freedoom", tag: "Doom-style shooter, free and open source", src: "/arcade/doom/index.html", landscape: true, accent: "rgba(192,57,43,0.55)" },
+  { id: "hexgl", emoji: "🏎️", name: "HexGL", tag: "Futuristic anti-gravity racing", src: "/arcade/hexgl/index.html", landscape: true, accent: "rgba(52,152,219,0.55)" },
+  { id: "pacman", emoji: "👻", name: "Pac-Man", tag: "Dodge the ghosts", src: "/arcade/pacman/index.html", accent: "rgba(249,202,36,0.45)" },
+  { id: "hextris", emoji: "⬡", name: "Hextris", tag: "Fast hexagon puzzle", src: "/arcade/hextris/index.html", accent: "rgba(46,204,113,0.45)" },
+  { id: "2048", emoji: "🔢", name: "2048", tag: "Swipe and merge the tiles", src: "/arcade/2048/index.html", accent: "rgba(237,194,46,0.45)" },
+  { id: "clumsy-bird", emoji: "🐤", name: "Clumsy Bird", tag: "Tap to flap", src: "/arcade/clumsy-bird/index.html", accent: "rgba(52,152,219,0.45)" },
+  { id: "snake", emoji: "🐍", name: "Snake", tag: "Eat, grow, don't bite yourself", src: "/arcade/snake/index.html", accent: "rgba(90,209,143,0.45)" },
+  { id: "zork1", emoji: "🗺️", name: "Zork I", tag: "The classic text adventure. Type what you do.", src: "/arcade/zork/zork1.html", accent: "rgba(142,68,173,0.5)" },
+  { id: "zork2", emoji: "🧙", name: "Zork II", tag: "The Wizard of Frobozz awaits", src: "/arcade/zork/zork2.html", accent: "rgba(142,68,173,0.5)" },
+  { id: "zork3", emoji: "🗝️", name: "Zork III", tag: "The Dungeon Master's final test", src: "/arcade/zork/zork3.html", accent: "rgba(142,68,173,0.5)" }
+];
+
 // Channels widget loader (shared bundle, global feed).
 (function () {
   var WIDGET_SRC = "https://colonialbeachapp.com/channels-widget.js";
@@ -27,7 +43,7 @@ if ("serviceWorker" in navigator) {
     try {
       if (window.CBChannels && typeof window.CBChannels.mount === "function") {
         if (statusEl && statusEl.parentNode) statusEl.parentNode.removeChild(statusEl);
-        window.CBChannels.mount(rootEl, { showStage: false, inlineYouTube: true, livePreviews: true });
+        window.CBChannels.mount(rootEl, { showStage: false, inlineYouTube: true, livePreviews: true, games: GAMES, gamesCreditsUrl: "/arcade/ATTRIBUTION.md" });
         return true;
       }
     } catch (_) {}

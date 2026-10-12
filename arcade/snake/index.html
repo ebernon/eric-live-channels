@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Snake — Game Room</title>
+<!-- MIT License. Written for the town-app Game Room. -->
+<style>
+  html,body{margin:0;height:100%;background:#0d1420;color:#e7edf5;overflow:hidden;touch-action:none;
+    -webkit-user-select:none;user-select:none;font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif}
+  #wrap{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+  #hud{display:flex;gap:22px;font-weight:700;font-size:15px;opacity:.9}
+  #hud span b{color:#5ad18f}
+  canvas{background:#101b2c;border:1px solid #24344d;border-radius:10px;display:block}
+  #msg{position:fixed;inset:0;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;
+    background:rgba(6,10,17,.82);z-index:10;text-align:center;padding:20px}
+  #msg h1{margin:0;font-size:30px;color:#5ad18f;letter-spacing:1px}
+  #msg p{margin:0;opacity:.8;font-size:14px;max-width:300px;line-height:1.5}
+  #msg button{background:#5ad18f;color:#08301c;font-weight:800;border:none;border-radius:10px;
+    padding:14px 38px;font-size:17px;cursor:pointer}
+  #dead h1{color:#ff7a6b}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="hud"><span>Score <b id="sc">0</b></span><span>Best <b id="best">0</b></span></div>
+  <canvas id="cv"></canvas>
+</div>
+
+<div id="msg">
+  <h1>🐍 SNAKE</h1>
+  <p>Swipe anywhere to steer (arrow keys on a computer). Eat, grow, don't bite yourself. Edges wrap around.</p>
+  <button id="go">▶ &nbsp;PLAY</button>
+</div>
+<div id="dead" class="hidden" style="position:fixed;inset:0;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:rgba(6,10,17,.82);z-index:10;text-align:center;padding:20px">
+  <h1 style="margin:0;font-size:30px;color:#ff7a6b">Ouch.</h1>
+  <p id="deadScore" style="margin:0;opacity:.85;font-size:15px"></p>
+  <button id="again" style="background:#5ad18f;color:#08301c;font-weight:800;border:none;border-radius:10px;padding:14px 38px;font-size:17px;cursor:pointer">Play again</button>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var cv=document.getElementById("cv"), cx=cv.getContext("2d");
+  var scEl=document.getElementById("sc"), bestEl=document.getElementById("best");
+  var N=21, cell=18, snake, dir, nextDir, food, score, timer, speed, alive=false;
+  var LS="gameroom.snake.best";
+  var best=parseInt(localStorage.getItem(LS)||"0",10)||0; bestEl.textContent=best;
+
+  function sizeBoard(){
+    var m=Math.min(window.innerWidth-24, window.innerHeight-90);
+    cell=Math.max(10,Math.floor(m/N));
+    cv.width=cv.height=cell*N;
+  }
+  sizeBoard(); window.addEventListener("resize",function(){ sizeBoard(); draw(); });
+
+  function reset(){
+    snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+    dir={x:1,y:0}; nextDir=dir; score=0; speed=150; scEl.textContent=0;
+    placeFood(); alive=true;
+    clearInterval(timer); timer=setInterval(step,speed);
+  }
+  function placeFood(){
+    do{ food={x:Math.floor(Math.random()*N),y:Math.floor(Math.random()*N)}; }
+    while(snake.some(function(s){return s.x===food.x&&s.y===food.y}));
+  }
+  function step(){
+    dir=nextDir;
+    var h={x:(snake[0].x+dir.x+N)%N, y:(snake[0].y+dir.y+N)%N};
+    if(snake.some(function(s){return s.x===h.x&&s.y===h.y})) return die();
+    snake.unshift(h);
+    if(h.x===food.x&&h.y===food.y){
+      score++; scEl.textContent=score; placeFood();
+      if(speed>70){ speed-=4; clearInterval(timer); timer=setInterval(step,speed); }
+    } else snake.pop();
+    draw();
+  }
+  function die(){
+    alive=false; clearInterval(timer);
+    if(score>best){ best=score; localStorage.setItem(LS,best); bestEl.textContent=best; }
+    document.getElementById("deadScore").textContent="Score "+score+"  ·  best "+best;
+    document.getElementById("dead").classList.remove("hidden");
+  }
+  function draw(){
+    cx.fillStyle="#101b2c"; cx.fillRect(0,0,cv.width,cv.height);
+    cx.fillStyle="#ffcf5c";
+    cx.beginPath(); cx.arc(food.x*cell+cell/2, food.y*cell+cell/2, cell*0.36, 0, 7); cx.fill();
+    snake.forEach(function(s,i){
+      cx.fillStyle = i===0 ? "#7de8a8" : "#5ad18f";
+      cx.fillRect(s.x*cell+1, s.y*cell+1, cell-2, cell-2);
+    });
+  }
+  function turn(x,y){
+    if(!alive) return;
+    if(x===-dir.x&&y===-dir.y) return;  // no instant reverse
+    nextDir={x:x,y:y};
+  }
+  document.addEventListener("keydown",function(e){
+    if(e.keyCode===37)turn(-1,0); else if(e.keyCode===39)turn(1,0);
+    else if(e.keyCode===38)turn(0,-1); else if(e.keyCode===40)turn(0,1);
+    else return;
+    e.preventDefault();
+  });
+  var t0=null;
+  document.addEventListener("pointerdown",function(e){ t0={x:e.clientX,y:e.clientY}; });
+  document.addEventListener("pointerup",function(e){
+    if(!t0) return;
+    var dx=e.clientX-t0.x, dy=e.clientY-t0.y; t0=null;
+    if(Math.hypot(dx,dy)<18) return;
+    if(Math.abs(dx)>Math.abs(dy)) turn(dx>0?1:-1,0); else turn(0,dy>0?1:-1);
+  });
+  document.addEventListener("visibilitychange",function(){
+    if(document.hidden&&alive){ clearInterval(timer); }
+    else if(alive){ clearInterval(timer); timer=setInterval(step,speed); }
+  });
+  document.getElementById("go").addEventListener("click",function(){
+    document.getElementById("msg").classList.add("hidden"); reset(); draw();
+  });
+  document.getElementById("again").addEventListener("click",function(){
+    document.getElementById("dead").classList.add("hidden"); reset(); draw();
+  });
+})();
+</script>
+</body>
+</html>
