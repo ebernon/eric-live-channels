@@ -13,9 +13,9 @@ var GAMES = [
   { id: "2048", emoji: "🔢", name: "2048", tag: "Swipe and merge the tiles", src: "/arcade/2048/index.html", accent: "rgba(237,194,46,0.45)" },
   { id: "clumsy-bird", emoji: "🐤", name: "Clumsy Bird", tag: "Tap to flap", src: "/arcade/clumsy-bird/index.html", accent: "rgba(52,152,219,0.45)" },
   { id: "snake", emoji: "🐍", name: "Snake", tag: "Eat, grow, don't bite yourself", src: "/arcade/snake/index.html", accent: "rgba(90,209,143,0.45)" },
-  { id: "zork1", emoji: "🗺️", name: "Zork I", tag: "The classic text adventure. Type what you do.", src: "/arcade/zork/zork1.html", accent: "rgba(142,68,173,0.5)" },
-  { id: "zork2", emoji: "🧙", name: "Zork II", tag: "The Wizard of Frobozz awaits", src: "/arcade/zork/zork2.html", accent: "rgba(142,68,173,0.5)" },
-  { id: "zork3", emoji: "🗝️", name: "Zork III", tag: "The Dungeon Master's final test", src: "/arcade/zork/zork3.html", accent: "rgba(142,68,173,0.5)" }
+  { id: "zork1", emoji: "🗺️", name: "Zork I", tag: "The classic text adventure. Type what you do.", src: "/arcade/zork/zork1.html?v=2", accent: "rgba(142,68,173,0.5)" },
+  { id: "zork2", emoji: "🧙", name: "Zork II", tag: "The Wizard of Frobozz awaits", src: "/arcade/zork/zork2.html?v=2", accent: "rgba(142,68,173,0.5)" },
+  { id: "zork3", emoji: "🗝️", name: "Zork III", tag: "The Dungeon Master's final test", src: "/arcade/zork/zork3.html?v=2", accent: "rgba(142,68,173,0.5)" }
 ];
 
 // Channels widget loader (shared bundle, global feed).
