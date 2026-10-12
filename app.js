@@ -27,7 +27,7 @@ if ("serviceWorker" in navigator) {
     try {
       if (window.CBChannels && typeof window.CBChannels.mount === "function") {
         if (statusEl && statusEl.parentNode) statusEl.parentNode.removeChild(statusEl);
-        window.CBChannels.mount(rootEl, { showStage: false, inlineYouTube: true });
+        window.CBChannels.mount(rootEl, { showStage: false, inlineYouTube: true, livePreviews: true });
         return true;
       }
     } catch (_) {}
